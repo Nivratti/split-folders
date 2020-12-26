@@ -66,21 +66,15 @@ def ratio(input, output="output", seed=1337, ratio=(0.8, 0.1, 0.1), group_prefix
     assert round(sum(ratio), 5) == 1
     assert len(ratio) in (2, 3)
 
-    if tqdm_is_installed:
-        prog_bar = tqdm(desc=f"Copying files", unit=" files")
-
     for class_dir in list_dirs(input):
         split_class_dir_ratio(
             class_dir,
             output,
             ratio,
             seed,
-            prog_bar if tqdm_is_installed else None,
+            None,
             group_prefix,
         )
-
-    if tqdm_is_installed:
-        prog_bar.close()
 
 
 def fixed(
@@ -241,20 +235,64 @@ def split_files(files, split_train_idx, split_val_idx, use_test):
     return li
 
 
+# def copy_files(files_type, class_dir, output, prog_bar):
+#     """Copies the files from the input folder to the output folder
+#     """
+#     import pdb; pdb.set_trace();
+#     # get the last part within the file
+#     class_name = path.split(class_dir)[1]
+#     for (files, folder_type) in files_type:
+#         full_path = path.join(output, folder_type, class_name)
+
+#         pathlib.Path(full_path).mkdir(parents=True, exist_ok=True)
+#         for f in files:
+#             if not prog_bar is None:
+#                 prog_bar.update()
+#             if type(f) == tuple:
+#                 for x in f:
+#                     shutil.copy2(x, full_path)
+#             else:
+#                 shutil.copy2(f, full_path)
+
+
+from psutil import cpu_count
+from tqdm.contrib.concurrent import process_map, thread_map  # requires tqdm>=4.42.0
+from functools import partial
+
 def copy_files(files_type, class_dir, output, prog_bar):
     """Copies the files from the input folder to the output folder
     """
+    def _copy(f, full_path):
+        try:
+            shutil.copy2(f, full_path)
+            return True
+        except Exception as e:
+            return e
+
+    # import pdb; pdb.set_trace();
     # get the last part within the file
     class_name = path.split(class_dir)[1]
     for (files, folder_type) in files_type:
         full_path = path.join(output, folder_type, class_name)
 
         pathlib.Path(full_path).mkdir(parents=True, exist_ok=True)
+        
+        # check list
         for f in files:
-            if not prog_bar is None:
-                prog_bar.update()
             if type(f) == tuple:
                 for x in f:
                     shutil.copy2(x, full_path)
-            else:
-                shutil.copy2(f, full_path)
+                files.remove(f)
+
+        worker = _copy  # function to map
+        kwargs = {
+            'full_path': full_path,
+        }
+        jobs = files
+
+        result = thread_map(
+            partial(worker, **kwargs), jobs, 
+            max_workers=cpu_count() * 4
+        )
+
+                
