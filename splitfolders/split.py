@@ -37,6 +37,10 @@ import random
 import shutil
 from os import path
 
+from psutil import cpu_count
+from tqdm.contrib.concurrent import process_map, thread_map  # requires tqdm>=4.42.0
+from functools import partial
+
 try:
     from tqdm import tqdm
 
@@ -61,7 +65,7 @@ def list_files(directory):
     ]
 
 
-def ratio(input, output="output", seed=1337, ratio=(0.8, 0.1, 0.1), group_prefix=None):
+def ratio(input, output="output", seed=1337, ratio=(0.8, 0.1, 0.1), max_workers=cpu_count() * 4, group_prefix=None):
     # make up for some impression
     assert round(sum(ratio), 5) == 1
     assert len(ratio) in (2, 3)
@@ -72,7 +76,7 @@ def ratio(input, output="output", seed=1337, ratio=(0.8, 0.1, 0.1), group_prefix
             output,
             ratio,
             seed,
-            None,
+            max_workers,
             group_prefix,
         )
 
@@ -186,7 +190,7 @@ def setup_files(class_dir, seed, group_prefix=None):
     return files
 
 
-def split_class_dir_ratio(class_dir, output, ratio, seed, prog_bar, group_prefix):
+def split_class_dir_ratio(class_dir, output, ratio, seed, max_workers, group_prefix):
     """Splits one very class folder
     """
     files = setup_files(class_dir, seed, group_prefix)
@@ -196,7 +200,7 @@ def split_class_dir_ratio(class_dir, output, ratio, seed, prog_bar, group_prefix
     split_val_idx = split_train_idx + int(ratio[1] * len(files))
 
     li = split_files(files, split_train_idx, split_val_idx, len(ratio) == 3)
-    copy_files(li, class_dir, output, prog_bar)
+    copy_files(li, class_dir, output, max_workers)
 
 
 def split_class_dir_fixed(class_dir, output, fixed, seed, prog_bar, group_prefix):
@@ -255,11 +259,7 @@ def split_files(files, split_train_idx, split_val_idx, use_test):
 #                 shutil.copy2(f, full_path)
 
 
-from psutil import cpu_count
-from tqdm.contrib.concurrent import process_map, thread_map  # requires tqdm>=4.42.0
-from functools import partial
-
-def copy_files(files_type, class_dir, output, prog_bar):
+def copy_files(files_type, class_dir, output, max_workers):
     """Copies the files from the input folder to the output folder
     """
     def _copy(f, full_path):
@@ -292,7 +292,7 @@ def copy_files(files_type, class_dir, output, prog_bar):
 
         result = thread_map(
             partial(worker, **kwargs), jobs, 
-            max_workers=cpu_count() * 4
+            max_workers=max_workers
         )
 
                 
