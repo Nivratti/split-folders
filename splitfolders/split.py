@@ -38,7 +38,8 @@ import shutil
 from os import path
 
 from psutil import cpu_count
-from tqdm.contrib.concurrent import process_map, thread_map  # requires tqdm>=4.42.0
+from tqdm.notebook import tqdm
+from tqdm.contrib.concurrent import process_map, thread_map  # requires tqdm==4.42.0
 from functools import partial
 
 try:
@@ -263,18 +264,16 @@ def copy_files(files_type, class_dir, output, max_workers):
     """Copies the files from the input folder to the output folder
     """
     def _copy(f, full_path):
-        try:
-            shutil.copy2(f, full_path)
-            return True
-        except Exception as e:
-            return e
-
+        shutil.copy2(f, full_path)
+    
     # import pdb; pdb.set_trace();
     # get the last part within the file
     class_name = path.split(class_dir)[1]
     for (files, folder_type) in files_type:
         full_path = path.join(output, folder_type, class_name)
 
+        print(f"\nCopying ({len(files)}) of .. {folder_type}/{class_name}\n")
+        
         pathlib.Path(full_path).mkdir(parents=True, exist_ok=True)
         
         # check list
@@ -294,5 +293,3 @@ def copy_files(files_type, class_dir, output, max_workers):
             partial(worker, **kwargs), jobs, 
             max_workers=max_workers
         )
-
-                
