@@ -1,11 +1,11 @@
 [tool.poetry]
 name = "split-folder"
-version = "0.1.0"
+version = "0.1.2"
 description = "Spilt folder into train/val/test subset"
 authors = ["Nivratti <boyanenivratti@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.2"
 nb-utils = "^0.1.0"
 
 [tool.poetry.dev-dependencies]
