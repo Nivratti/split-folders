@@ -1,3 +1,2 @@
 
-nb-utils
-
+https://files.pythonhosted.org/packages/f8/c5/a1ee31c872fe8d8caf4fbd2602fc7c340979d47d12f5696adf659fe97aa8/nb_utils-0.1.1-py3-none-any.whl

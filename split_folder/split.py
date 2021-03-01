@@ -42,6 +42,8 @@ from tqdm.notebook import tqdm
 from tqdm.contrib.concurrent import process_map, thread_map  # requires tqdm==4.42.0
 from functools import partial
 
+from nb_utils.file_dir_handling import list_files as nb_listfiles
+
 try:
     from tqdm import tqdm
 
@@ -59,11 +61,10 @@ def list_dirs(directory):
 def list_files(directory):
     """Returns all files in a given directory
     """
-    return [
-        f
-        for f in pathlib.Path(directory).iterdir()
-        if f.is_file() and not f.name.startswith(".")
-    ]
+    return nb_listfiles(
+        directory,
+        filter_ext=[".jpg", ".jpeg", ".png"],
+    )
 
 
 def ratio(input, output="output", seed=1337, ratio=(0.8, 0.1, 0.1), max_workers=cpu_count() * 4, group_prefix=None):
