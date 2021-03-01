@@ -67,7 +67,7 @@ def list_files(directory):
     )
 
 
-def ratio(input, output="output", seed=1337, ratio=(0.8, 0.1, 0.1), max_workers=cpu_count() * 4, group_prefix=None):
+def ratio(input, output="output", seed=1337, ratio=(0.8, 0.1, 0.1), move=False, max_workers=cpu_count() * 4, group_prefix=None):
     # make up for some impression
     assert round(sum(ratio), 5) == 1
     assert len(ratio) in (2, 3)
@@ -78,6 +78,7 @@ def ratio(input, output="output", seed=1337, ratio=(0.8, 0.1, 0.1), max_workers=
             output,
             ratio,
             seed,
+            move,
             max_workers,
             group_prefix,
         )
@@ -192,7 +193,7 @@ def setup_files(class_dir, seed, group_prefix=None):
     return files
 
 
-def split_class_dir_ratio(class_dir, output, ratio, seed, max_workers, group_prefix):
+def split_class_dir_ratio(class_dir, output, ratio, seed, move, max_workers, group_prefix):
     """Splits one very class folder
     """
     files = setup_files(class_dir, seed, group_prefix)
@@ -202,7 +203,11 @@ def split_class_dir_ratio(class_dir, output, ratio, seed, max_workers, group_pre
     split_val_idx = split_train_idx + int(ratio[1] * len(files))
 
     li = split_files(files, split_train_idx, split_val_idx, len(ratio) == 3)
-    copy_files(li, class_dir, output, max_workers)
+
+    if move:
+        move_files(li, class_dir, output, max_workers)
+    else:
+        copy_files(li, class_dir, output, max_workers)
 
 
 def split_class_dir_fixed(class_dir, output, fixed, seed, prog_bar, group_prefix):
@@ -285,6 +290,41 @@ def copy_files(files_type, class_dir, output, max_workers):
                 files.remove(f)
 
         worker = _copy  # function to map
+        kwargs = {
+            'full_path': full_path,
+        }
+        jobs = files
+
+        result = thread_map(
+            partial(worker, **kwargs), jobs, 
+            max_workers=max_workers
+        )
+
+
+def move_files(files_type, class_dir, output, max_workers):
+    """Move the files from the input folder to the output folder
+    """
+    def _move(f, full_path):
+        shutil.move(f, full_path)
+    
+    # import pdb; pdb.set_trace();
+    # get the last part within the file
+    class_name = path.split(class_dir)[1]
+    for (files, folder_type) in files_type:
+        full_path = path.join(output, folder_type, class_name)
+
+        print(f"\nMoving ({len(files)}) of .. {folder_type}/{class_name}\n")
+        
+        pathlib.Path(full_path).mkdir(parents=True, exist_ok=True)
+        
+        # check list
+        for f in files:
+            if type(f) == tuple:
+                for x in f:
+                    shutil.move(x, full_path)
+                files.remove(f)
+
+        worker = _move  # function to map
         kwargs = {
             'full_path': full_path,
         }
