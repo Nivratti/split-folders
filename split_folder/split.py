@@ -31,11 +31,12 @@ into this resulting format:
             imgc.jpg
             ...
 """
-
+import os
 import pathlib
 import random
 import shutil
 from os import path
+import re
 
 from psutil import cpu_count
 from tqdm.notebook import tqdm
@@ -184,7 +185,7 @@ def setup_files(class_dir, seed, group_prefix=None):
     random.seed(seed)
 
     files = list_files(class_dir)
-
+    
     if group_prefix is not None:
         files = group_by_prefix(files, group_prefix)
 
@@ -269,8 +270,18 @@ def split_files(files, split_train_idx, split_val_idx, use_test):
 def copy_files(files_type, class_dir, output, max_workers):
     """Copies the files from the input folder to the output folder
     """
-    def _copy(f, full_path):
-        shutil.copy2(f, full_path)
+    def _copy(f, class_name, full_path):
+        # import ipdb; ipdb.set_trace()
+        file_relative_path = re.split(f'{class_name}', f)[-1]
+        # remove forword or backword slashes as per os from start
+        file_relative_path = file_relative_path.strip(os.sep)
+
+        if file_relative_path:
+            dest_path = os.path.join(full_path, file_relative_path)
+            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+            shutil.copy2(f, dest_path)
+        else:
+            shutil.copy2(f, full_path)
     
     # import pdb; pdb.set_trace();
     # get the last part within the file
@@ -291,13 +302,14 @@ def copy_files(files_type, class_dir, output, max_workers):
 
         worker = _copy  # function to map
         kwargs = {
+            'class_name': class_name,
             'full_path': full_path,
         }
         jobs = files
 
         result = thread_map(
             partial(worker, **kwargs), jobs, 
-            max_workers=max_workers
+            max_workers=max_workers # set 1 for development
         )
 
 
