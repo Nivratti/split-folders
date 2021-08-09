@@ -272,9 +272,12 @@ def copy_files(files_type, class_dir, output, max_workers):
     """
     def _copy(f, class_name, full_path):
         # import ipdb; ipdb.set_trace()
-        file_relative_path = re.split(f'{class_name}', f)[-1]
+        # if "\\spoof\\" in f:
+        #     import ipdb; ipdb.set_trace()
+        class_name_with_separator = os.sep + class_name + os.sep
+        file_relative_path = f.split(f'{class_name_with_separator}', 1)[-1]
         # remove forword or backword slashes as per os from start
-        file_relative_path = file_relative_path.strip(os.sep)
+        # file_relative_path = file_relative_path.strip(os.sep)
 
         if file_relative_path:
             dest_path = os.path.join(full_path, file_relative_path)
@@ -309,7 +312,7 @@ def copy_files(files_type, class_dir, output, max_workers):
 
         result = thread_map(
             partial(worker, **kwargs), jobs, 
-            max_workers=max_workers # set 1 for development
+            max_workers=1 # set 1 for development
         )
 
 
